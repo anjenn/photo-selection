@@ -4,6 +4,8 @@ import shutil
 import unicodedata
 from pathlib import Path
 
+from .i18n import t
+
 
 JPEG_EXTENSIONS = frozenset({".jpg", ".jpeg"})
 RAW_EXTENSIONS = frozenset(
@@ -67,20 +69,18 @@ def path_is_inside(path: Path, parent: Path) -> bool:
 def validate_output_folder(folder_a: Path, folder_b: Path, output_folder: Path) -> None:
     output_folder = output_folder.resolve()
     for source_folder, label in (
-        (folder_a.resolve(), "Folder A"),
-        (folder_b.resolve(), "Folder B"),
+        (folder_a.resolve(), t("folder_a")),
+        (folder_b.resolve(), t("folder_b")),
     ):
         if output_folder == source_folder:
-            raise ValueError(f"Destination folder cannot be the same as {label}.")
+            raise ValueError(t("err_same_as_source", label=label))
         if path_is_inside(source_folder, output_folder):
-            raise ValueError(
-                f"Destination folder cannot contain {label}. Choose a separate output folder."
-            )
+            raise ValueError(t("err_contains_source", label=label))
 
 
 def reset_output_folder(output_folder: Path) -> None:
     if output_folder.exists() and not output_folder.is_dir():
-        raise NotADirectoryError(f"Destination is not a folder: {output_folder}")
+        raise NotADirectoryError(t("err_dest_not_dir", path=output_folder))
 
     output_folder.mkdir(parents=True, exist_ok=True)
     for child in output_folder.iterdir():
@@ -104,9 +104,9 @@ def copy_photo_intersection(
     of files copied.
     """
     if source_folder not in ("A", "B"):
-        raise ValueError("Source folder must be A or B.")
+        raise ValueError(t("err_bad_source"))
     if file_type not in FILE_TYPES:
-        raise ValueError(f"File type must be one of: {', '.join(FILE_TYPES)}.")
+        raise ValueError(t("err_bad_type", types=", ".join(FILE_TYPES)))
 
     validate_output_folder(folder_a, folder_b, output_folder)
     reset_output_folder(output_folder)

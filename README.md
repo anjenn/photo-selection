@@ -14,6 +14,13 @@ it), pick a tab, choose folders with the Browse buttons, then click Run.
 
 Requires Python 3.9+ with Tkinter (included in the standard Windows installer).
 
+### Language / 언어
+
+The app is available in Korean (한국어) and English. It opens in Korean when
+Windows is set to Korean and in English otherwise. Switch with the language
+box at the top right; the choice is remembered (saved in
+`%APPDATA%\PhotoSelection\settings.json`).
+
 ## Match Photos
 
 Files match when their names match, ignoring uppercase/lowercase and the
@@ -47,8 +54,10 @@ python main.py match "C:\folder A" "C:\folder B" "C:\folder C" --source B --type
 python main.py list "C:\folder" "C:\folder_file_list.txt"
 ```
 
-Leave out any path and it is asked for in the terminal. See
-`python main.py match --help` for all options.
+Leave out any path and it is asked for in the terminal. Add `--lang ko` or
+`--lang en` before the command to pick the language for that run (for example
+`python main.py --lang en list ...`). See `python main.py match --help` for all
+options.
 
 ## Build the .exe
 
@@ -69,6 +78,7 @@ photo_selection/
     intersection.py        Match Photos logic
     file_list.py           File List logic
     paths.py               shared path helpers
+    i18n.py                Korean / English text and the saved language choice
     gui.py                 Tkinter window (one tab per tool)
     cli.py                 terminal commands
 ```

@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from .i18n import t
+
 
 def collect_files(folder: Path) -> list[Path]:
     return sorted(
@@ -21,11 +23,11 @@ def write_file_list(folder: Path, output_file: Path) -> int:
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     lines = [
-        f"Folder: {folder}",
-        f"Total files: {len(files)}",
-        f"Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        t("list_header_folder", folder=folder),
+        t("list_header_total", count=len(files)),
+        t("list_header_created", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         "",
-        "Files:",
+        t("list_header_files"),
     ]
 
     lines.extend(path.relative_to(folder).as_posix() for path in files)

@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .file_list import default_output_path, write_file_list
+from .i18n import LANGUAGES, load_language, set_language, t
 from .intersection import FILE_TYPES, copy_photo_intersection
 from .paths import clean_path, validate_folder
 
@@ -11,6 +12,11 @@ from .paths import clean_path, validate_folder
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Photo Selection tools. Run with no arguments to open the app window."
+    )
+    parser.add_argument(
+        "--lang",
+        choices=tuple(LANGUAGES),
+        help="language for this run (default: the one chosen in the app, else the system's)",
     )
     commands = parser.add_subparsers(dest="command", metavar="command")
 
@@ -71,39 +77,40 @@ def ask_for_source(current_value: str | None) -> str:
         return current_value
 
     while True:
-        source = input("Copy matching files from folder (A or B): ").strip().upper()
+        source = input(f"{t('prompt_source')}: ").strip().upper()
         if source in {"A", "B"}:
             return source
-        print("Please enter A or B.")
+        print(t("prompt_source_retry"))
 
 
 def run_match(args: argparse.Namespace) -> None:
-    folder_a = ask_for_path("Folder A path (photos)", args.folder_a)
-    folder_b = ask_for_path("Folder B path (photos)", args.folder_b)
-    output_folder = ask_for_path("Folder C path (output)", args.output_folder)
+    folder_a = ask_for_path(t("prompt_folder_a"), args.folder_a)
+    folder_b = ask_for_path(t("prompt_folder_b"), args.folder_b)
+    output_folder = ask_for_path(t("prompt_folder_c"), args.output_folder)
     source = ask_for_source(args.source)
 
-    validate_folder(folder_a, "Folder A")
-    validate_folder(folder_b, "Folder B")
+    validate_folder(folder_a, t("folder_a"))
+    validate_folder(folder_b, t("folder_b"))
 
     copied = copy_photo_intersection(folder_a, folder_b, output_folder, source, args.file_type)
-    print(f"Done. Copied {copied} matching photo(s) from folder {source} to: {output_folder}")
+    print(t("match_done", count=copied, source=source, folder=output_folder))
 
 
 def run_list(args: argparse.Namespace) -> None:
-    folder = ask_for_path("Folder path", args.folder)
+    folder = ask_for_path(t("prompt_list_folder"), args.folder)
     output_file = (
         clean_path(args.output_file) if args.output_file else default_output_path(folder)
     )
 
-    validate_folder(folder, "Folder")
+    validate_folder(folder, t("folder"))
 
     total = write_file_list(folder, output_file)
-    print(f"Done. Listed {total} file(s) in: {output_file}")
+    print(t("list_done", count=total, file=output_file))
 
 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
+    set_language(args.lang or load_language())
 
     if args.command is None:
         # Imported here so the terminal commands work without Tkinter.
@@ -118,4 +125,4 @@ def main(argv: list[str] | None = None) -> None:
         else:
             run_list(args)
     except (OSError, ValueError) as error:
-        raise SystemExit(f"Error: {error}") from error
+        raise SystemExit(t("cli_error", message=error)) from error
