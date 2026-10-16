@@ -4,3 +4,6 @@ __pycache__/
 # PyInstaller work files (dist/PhotoSelection.exe is committed)
 build/
 *.zip
+
+# Rendered promo video and other generated media
+output/
