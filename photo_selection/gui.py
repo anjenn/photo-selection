@@ -13,10 +13,12 @@ from .file_list import default_output_path, write_file_list
 from .i18n import LANGUAGES, get_language, save_language, set_language, t
 from .intersection import copy_photo_intersection
 from .paths import clean_path, validate_folder
+from .targets import copy_target_photos, count_targets, parse_targets, read_text_file
 from .theme import px
 
 
 FILE_TYPE_KEYS = {"all": "type_all", "regular": "type_regular", "raw": "type_raw"}
+MISSING_SHOWN = 8  # missing targets listed in the status line before "and N more"
 
 # What a finished job reports: (status kind, status key, status values, path to open).
 JobResult = tuple[str, str, dict[str, object], Path]
@@ -27,6 +29,19 @@ def open_path(path: Path) -> None:
         os.startfile(path)
     else:
         webbrowser.open(path.as_uri())
+
+
+def wrap_to_width(label: ttk.Label) -> None:
+    """Wrap a label's text to whatever width the layout gives it.
+
+    width=1 stops the text from requesting width itself; otherwise the label
+    and the window would keep resizing each other.
+    """
+    label.configure(width=1, wraplength=px(400))
+    label.bind(
+        "<Configure>",
+        lambda event: label.configure(wraplength=max(event.width - px(4), px(40))),
+    )
 
 
 class ToolPage(ttk.Frame):
@@ -51,6 +66,7 @@ class ToolPage(ttk.Frame):
 
         description = self.translated(ttk.Label, self, description_key, style="Muted.TLabel")
         self.place_row(description, pady=(0, px(14)))
+        wrap_to_width(description)
 
     def translated(self, widget_class: type[tk.Widget], parent: tk.Widget, key: str, **options):
         widget = widget_class(parent, text=t(key), **options)
@@ -115,13 +131,15 @@ class ToolPage(ttk.Frame):
             ).pack(side="left", padx=(0, px(20)))
 
     def add_action_bar(self) -> None:
-        bar = ttk.Frame(self)
-        bar.columnconfigure(1, weight=1)
-        self.place_row(bar, pady=(px(2), 0))
+        """A full-width status line, then right-aligned buttons: column 1 is free for
+        extra buttons, then Open and Run."""
+        status = ttk.Frame(self)
+        status.columnconfigure(1, weight=1)
+        self.place_row(status, pady=(px(2), px(10)))
 
         dot_size = px(8)
         self.status_dot = tk.Canvas(
-            bar,
+            status,
             width=dot_size,
             height=dot_size,
             background=theme.BG,
@@ -129,17 +147,18 @@ class ToolPage(ttk.Frame):
             borderwidth=0,
         )
         self.status_dot.create_oval(0, 0, dot_size - 1, dot_size - 1, outline="", tags="dot")
-        self.status_dot.grid(row=0, column=0, padx=(px(2), px(8)))
-        self.status_label = ttk.Label(bar, textvariable=self.status_var)
+        self.status_dot.grid(row=0, column=0, sticky="n", padx=(px(2), px(8)), pady=(px(6), 0))
+        self.status_label = ttk.Label(status, textvariable=self.status_var)
         self.status_label.grid(row=0, column=1, sticky="ew")
-        self.status_label.bind(
-            "<Configure>", lambda event: self.status_label.configure(wraplength=event.width)
-        )
+        wrap_to_width(self.status_label)
 
+        self.action_bar = bar = ttk.Frame(self)
+        bar.columnconfigure(0, weight=1)
+        self.place_row(bar)
         self.open_button = self.translated(
             ttk.Button, bar, self.open_key, command=self.open_result
         )
-        self.open_button.grid(row=0, column=2, padx=(px(12), 0))
+        self.open_button.grid(row=0, column=2, padx=(px(8), 0))
         self.open_button.grid_remove()
         self.run_button = self.translated(
             ttk.Button, bar, self.run_key, style="Accent.TButton", command=self.run
@@ -184,8 +203,15 @@ class ToolPage(ttk.Frame):
             self.progress.stop()
             self.progress.configure(style="Idle.Horizontal.TProgressbar")
 
-    def run(self) -> None:
+    def clear_result(self) -> None:
+        """Hide the buttons that act on the previous run's result."""
         self.open_button.grid_remove()
+
+    def show_result(self) -> None:
+        self.open_button.grid()
+
+    def run(self) -> None:
+        self.clear_result()
         try:
             job = self.create_job()
         except (OSError, ValueError) as error:
@@ -218,7 +244,7 @@ class ToolPage(ttk.Frame):
 
         kind, key, values, self.result_path = outcome["result"]
         self.set_status(kind, key, **values)
-        self.open_button.grid()
+        self.show_result()
 
     def open_result(self) -> None:
         if self.result_path is None:
@@ -281,6 +307,172 @@ class MatchPhotosPage(ToolPage):
             if copied == 0:
                 return ("warning", "match_none", {}, output_folder)
             return ("success", "match_done_status", {"count": copied}, output_folder)
+
+        return job
+
+
+class TargetFinderPage(ToolPage):
+    run_key = "target_run"
+    busy_key = "target_busy"
+    idle_key = "target_idle"
+    open_key = "open_folder"
+
+    def __init__(self, parent: ttk.Notebook) -> None:
+        super().__init__(parent, "target_description")
+        self.photo_var = tk.StringVar()
+        self.output_var = tk.StringVar()
+        self.file_type_var = tk.StringVar(value="all")
+        self.missing: list[str] = []
+
+        targets = self.add_card("section_targets")
+        self.add_target_box(targets)
+
+        folders = self.add_card("section_folders")
+        self.add_folder_row(folders, 1, "photo_folder", self.photo_var)
+        self.add_folder_row(folders, 2, "output_folder", self.output_var)
+        self.translated(ttk.Label, folders, "target_warning", style="Warning.TLabel").grid(
+            row=3, column=1, columnspan=2, sticky="ew", pady=(px(4), 0)
+        )
+
+        options = self.add_card("section_options")
+        self.add_choice_row(options, 1, "file_type_label", self.file_type_var, FILE_TYPE_KEYS)
+
+        self.add_action_bar()
+        self.missing_button = self.translated(
+            ttk.Button, self.action_bar, "copy_missing", command=self.copy_missing
+        )
+        self.missing_button.grid(row=0, column=1, padx=(px(8), 0))
+        self.missing_button.grid_remove()
+        self.update_count()
+
+    def add_target_box(self, card: ttk.Frame) -> None:
+        box = tk.Frame(
+            card,
+            background=theme.SURFACE,
+            highlightthickness=1,
+            highlightbackground=theme.BORDER,
+            highlightcolor=theme.ACCENT,
+        )
+        box.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(0, px(6)))
+        box.columnconfigure(0, weight=1)
+        self.text = tk.Text(
+            box,
+            height=5,
+            width=40,
+            wrap="word",
+            undo=True,
+            font="TkTextFont",
+            relief="flat",
+            borderwidth=0,
+            highlightthickness=0,
+            background=theme.SURFACE,
+            foreground=theme.TEXT,
+            insertbackground=theme.TEXT,
+            selectbackground=theme.ACCENT,
+            selectforeground=theme.SURFACE,
+            padx=px(8),
+            pady=px(6),
+        )
+        self.text.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(box, orient="vertical", command=self.text.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.text.configure(yscrollcommand=scrollbar.set)
+        # Show the accent border while typing, like the entries.
+        self.text.bind("<FocusIn>", lambda _e: box.configure(highlightbackground=theme.ACCENT))
+        self.text.bind("<FocusOut>", lambda _e: box.configure(highlightbackground=theme.BORDER))
+        self.text.bind("<<Modified>>", self.on_text_modified)
+
+        buttons = ttk.Frame(card, style="Surface.TFrame")
+        buttons.grid(row=1, column=2, sticky="n", padx=(px(8), 0))
+        self.translated(ttk.Button, buttons, "load_txt", command=self.load_txt).pack(fill="x")
+        self.translated(ttk.Button, buttons, "clear", command=self.clear_text).pack(
+            fill="x", pady=(px(6), 0)
+        )
+
+        hint = self.translated(ttk.Label, card, "target_hint", style="Hint.TLabel")
+        hint.grid(row=2, column=0, columnspan=2, sticky="ew")
+        wrap_to_width(hint)
+        self.count_label = ttk.Label(card, style="Count.TLabel")
+        self.count_label.grid(row=2, column=2, sticky="ne", padx=(px(8), 0))
+
+    def list_text(self) -> str:
+        return self.text.get("1.0", "end-1c")
+
+    def on_text_modified(self, _event: tk.Event | None = None) -> None:
+        if self.text.edit_modified():
+            self.text.edit_modified(False)
+            self.update_count()
+
+    def update_count(self) -> None:
+        count = count_targets(parse_targets(self.list_text()))
+        self.count_label.configure(text=t("name_count", count=count))
+
+    def retranslate(self) -> None:
+        super().retranslate()
+        self.update_count()
+
+    def load_txt(self) -> None:
+        path = filedialog.askopenfilename(
+            filetypes=[(t("text_files"), "*.txt"), (t("all_files"), "*.*")]
+        )
+        if not path:
+            return
+        try:
+            content = read_text_file(Path(path))
+        except OSError as error:
+            self.set_status("error", text=str(error))
+            return
+        self.text.delete("1.0", "end")
+        self.text.insert("1.0", content)
+
+    def clear_text(self) -> None:
+        self.text.delete("1.0", "end")
+        self.text.focus_set()
+
+    def clear_result(self) -> None:
+        super().clear_result()
+        self.missing_button.grid_remove()
+
+    def show_result(self) -> None:
+        super().show_result()
+        if self.missing:
+            self.missing_button.grid()
+
+    def copy_missing(self) -> None:
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(self.missing))
+        self.missing_button.configure(text=t("copied"))
+        self.after(1500, lambda: self.missing_button.configure(text=t("copy_missing")))
+
+    def create_job(self) -> Callable[[], JobResult]:
+        targets = parse_targets(self.list_text())
+        if not targets:
+            raise ValueError(t("err_empty_list"))
+        if not (self.photo_var.get() and self.output_var.get()):
+            raise ValueError(t("need_target_folders"))
+
+        photo_folder = clean_path(self.photo_var.get())
+        output_folder = clean_path(self.output_var.get())
+        file_type = self.file_type_var.get()
+        validate_folder(photo_folder, t("photo_folder"))
+
+        def job() -> JobResult:
+            result = copy_target_photos(targets, photo_folder, output_folder, file_type)
+            self.missing = result.missing
+            if result.copied == 0:
+                return ("warning", "target_none", {}, output_folder)
+            if result.missing:
+                shown = ", ".join(result.missing[:MISSING_SHOWN])
+                extra = len(result.missing) - MISSING_SHOWN
+                names = t("and_more", names=shown, count=extra) if extra > 0 else shown
+                values = {
+                    "count": result.copied,
+                    "missing_count": len(result.missing),
+                    "names": names,
+                }
+                return ("warning", "target_partial", values, output_folder)
+            values = {"found": result.found, "count": result.copied}
+            return ("success", "target_done_status", values, output_folder)
 
         return job
 
@@ -358,6 +550,7 @@ class PhotoSelectionApp:
         self.notebook.grid(row=2, column=0, sticky="nsew")
         self.pages: list[tuple[ToolPage, str]] = [
             (MatchPhotosPage(self.notebook), "tab_match"),
+            (TargetFinderPage(self.notebook), "tab_target"),
             (FileListPage(self.notebook), "tab_list"),
         ]
         self.nav_items: list[tuple[ttk.Label, tk.Frame]] = []

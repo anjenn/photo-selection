@@ -134,8 +134,23 @@ def setup_theme(root: tk.Tk) -> None:
         font="AppSmall",
         padding=(px(10), px(6)),
     )
+    style.configure("Hint.TLabel", background=SURFACE, foreground=MUTED, font="AppSmall")
+    style.configure("Count.TLabel", background=SURFACE, foreground=ACCENT, font="AppStrong")
     for kind, color in STATUS_COLORS.items():
         style.configure(f"{kind.title()}.Status.TLabel", foreground=color)
+
+    style.configure(
+        "Vertical.TScrollbar",
+        troughcolor=SURFACE,
+        background=BORDER,
+        bordercolor=SURFACE,
+        lightcolor=BORDER,
+        darkcolor=BORDER,
+        arrowcolor=MUTED,
+        gripcount=0,
+        arrowsize=px(12),
+    )
+    style.map("Vertical.TScrollbar", background=[("active", FAINT)])
 
     style.configure(
         "TEntry",
