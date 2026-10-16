@@ -10,7 +10,7 @@ from .intersection import copy_photo_intersection
 from .paths import clean_path, validate_folder
 
 
-FILE_TYPE_KEYS = {"all": "type_all", "jpeg": "type_jpeg", "raw": "type_raw"}
+FILE_TYPE_KEYS = {"all": "type_all", "regular": "type_regular", "raw": "type_raw"}
 
 
 class ToolTab(ttk.Frame):

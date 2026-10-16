@@ -7,20 +7,18 @@ from pathlib import Path
 from .i18n import t
 
 
-JPEG_EXTENSIONS = frozenset({".jpg", ".jpeg"})
 RAW_EXTENSIONS = frozenset(
-    {".cr2", ".cr3", ".nef", ".arw", ".dng", ".raf", ".orf", ".rw2"}
+    ".3fr .arw .cr2 .cr3 .crw .dcr .dng .erf .fff "
+    ".iiq .kdc .mef .mos .mrw .nef .nrw .orf .pef "
+    ".raf .raw .rwl .rw2 .sr2 .srf .srw .x3f".split()
 )
-PHOTO_EXTENSIONS = (
-    JPEG_EXTENSIONS
-    | RAW_EXTENSIONS
-    | {".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic", ".heif"}
-)
+REGULAR_EXTENSIONS = frozenset(".jpg .jpeg .hif .heif .heic .tif .tiff".split())
+PHOTO_EXTENSIONS = RAW_EXTENSIONS | REGULAR_EXTENSIONS
 
 # Which files may be copied out of the source folder.
 FILE_TYPES: dict[str, frozenset[str]] = {
     "all": PHOTO_EXTENSIONS,
-    "jpeg": JPEG_EXTENSIONS,
+    "regular": REGULAR_EXTENSIONS,
     "raw": RAW_EXTENSIONS,
 }
 

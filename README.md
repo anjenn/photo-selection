@@ -29,9 +29,16 @@ Folder B.
 
 - **Copy matching files from**: choose whether the copies come from Folder A or
   Folder B.
-- **File types to copy**: `All photos`, `JPEG only`, or `RAW only`. Use
-  `JPEG only` when the source folder holds both RAW and JPEG versions of each
-  shot and you only want the JPEGs.
+- **File types to copy**: `All photos`, `Regular photos only`, or `RAW only`.
+  Use `Regular photos only` when the source folder holds both RAW and JPEG
+  versions of each shot and you only want the JPEGs.
+
+Recognized photo files (other files are ignored):
+
+| Group | Extensions |
+| --- | --- |
+| RAW | `.3fr .arw .cr2 .cr3 .crw .dcr .dng .erf .fff .iiq .kdc .mef .mos .mrw .nef .nrw .orf .pef .raf .raw .rwl .rw2 .sr2 .srf .srw .x3f` |
+| Regular photos (일반 사진) | `.jpg .jpeg .hif .heif .heic .tif .tiff` |
 
 One file is copied per matching name. **Folder C is emptied first**, so pick a
 separate output folder (the app refuses to use Folder A or B, or a folder that
@@ -50,7 +57,7 @@ its subfolders.
 ## Run from the terminal
 
 ```powershell
-python main.py match "C:\folder A" "C:\folder B" "C:\folder C" --source B --type jpeg
+python main.py match "C:\folder A" "C:\folder B" "C:\folder C" --source B --type regular
 python main.py list "C:\folder" "C:\folder_file_list.txt"
 ```
 
