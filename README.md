@@ -54,7 +54,7 @@ Recognized photo files (other files are ignored):
 | Group | Extensions |
 | --- | --- |
 | RAW | `.3fr .arw .cr2 .cr3 .crw .dcr .dng .erf .fff .iiq .kdc .mef .mos .mrw .nef .nrw .orf .pef .raf .raw .rwl .rw2 .sr2 .srf .srw .x3f` |
-| Regular photos (일반 사진) | `.jpg .jpeg .hif .heif .heic .tif .tiff` |
+| Regular photos (일반 사진) | `.jpg .jpeg .jpe .jfif .hif .heif .heic .tif .tiff .png .gif .webp .bmp .avif .jxl .jp2` |
 
 One file is copied per matching name. **Folder C is emptied first**, so pick a
 separate output folder (the app refuses to use Folder A or B, or a folder that

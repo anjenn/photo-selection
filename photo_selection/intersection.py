@@ -12,7 +12,10 @@ RAW_EXTENSIONS = frozenset(
     ".iiq .kdc .mef .mos .mrw .nef .nrw .orf .pef "
     ".raf .raw .rwl .rw2 .sr2 .srf .srw .x3f".split()
 )
-REGULAR_EXTENSIONS = frozenset(".jpg .jpeg .hif .heif .heic .tif .tiff".split())
+REGULAR_EXTENSIONS = frozenset(
+    ".jpg .jpeg .jpe .jfif .hif .heif .heic .tif .tiff "
+    ".png .gif .webp .bmp .avif .jxl .jp2".split()
+)
 PHOTO_EXTENSIONS = RAW_EXTENSIONS | REGULAR_EXTENSIONS
 
 # Which files may be copied out of the source folder.
