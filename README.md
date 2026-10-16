@@ -2,7 +2,7 @@
 
 One app with two tools:
 
-- **Match Photos**: copy the photos whose filenames exist in both Folder A and
+- **Intersection (교집합)**: copy the photos whose filenames exist in both Folder A and
   Folder B into Folder C.
 - **File List**: save a `.txt` list of every file in a folder, with the total
   count at the top.
@@ -19,7 +19,7 @@ not code-signed. Click **More info** → **Run anyway**.
 ## Run the app
 
 Double-click `dist/PhotoSelection.exe`, or `run_photo_selection.bat` to run
-from source with Python. Pick a tool at the top (Match Photos or
+from source with Python. Pick a tool at the top (Intersection or
 File List), choose folders with the Browse buttons, then click **Copy photos**
 or **Create list**. Progress and the result appear at the bottom of the window,
 and the window stays responsive while large folders are copied. When a run
@@ -35,7 +35,7 @@ Windows is set to Korean and in English otherwise. Switch with the language
 box at the top right; the choice is remembered (saved in
 `%APPDATA%\PhotoSelection\settings.json`).
 
-## Match Photos
+## Intersection (교집합)
 
 Files match when their names match, ignoring uppercase/lowercase and the
 extension. For example, `IMG_001.CR2` in Folder A matches `IMG_001.JPG` in
@@ -99,7 +99,7 @@ run_photo_selection.bat    double-click launcher
 PhotoSelection.spec        PyInstaller build config
 dist/PhotoSelection.exe    ready-to-run app (no Python needed)
 photo_selection/
-    intersection.py        Match Photos logic
+    intersection.py        Intersection logic
     file_list.py           File List logic
     paths.py               shared path helpers
     i18n.py                Korean / English text and the saved language choice
