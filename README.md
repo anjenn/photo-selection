@@ -9,8 +9,11 @@ One app with two tools:
 
 ## Run the app
 
-Double-click `run_photo_selection.bat` (or `PhotoSelection.exe` if you built
-it), pick a tab, choose folders with the Browse buttons, then click Run.
+Double-click `run_photo_selection.bat`, pick a tool at the top (Match Photos or
+File List), choose folders with the Browse buttons, then click **Copy photos**
+or **Create list**. Progress and the result appear at the bottom of the window,
+and the window stays responsive while large folders are copied. When a run
+finishes, **Open folder** / **Open file** shows the result.
 
 Requires Python 3.9+ with Tkinter (included in the standard Windows installer).
 
@@ -86,6 +89,7 @@ photo_selection/
     file_list.py           File List logic
     paths.py               shared path helpers
     i18n.py                Korean / English text and the saved language choice
-    gui.py                 Tkinter window (one tab per tool)
+    theme.py               colors, fonts, widget styles, and the logo
+    gui.py                 Tkinter window (header, one page per tool)
     cli.py                 terminal commands
 ```
