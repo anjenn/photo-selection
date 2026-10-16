@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
 
-# PyInstaller output
+# PyInstaller work files (dist/PhotoSelection.exe is committed)
 build/
-dist/
 *.zip

@@ -7,15 +7,26 @@ One app with two tools:
 - **File List**: save a `.txt` list of every file in a folder, with the total
   count at the top.
 
+## Download (no Python needed)
+
+The ready-to-run Windows app is in the `dist` folder:
+[`dist/PhotoSelection.exe`](dist/PhotoSelection.exe). Download it and
+double-click it; nothing else needs to be installed.
+
+Windows may show "Windows protected your PC" the first time, because the app is
+not code-signed. Click **More info** → **Run anyway**.
+
 ## Run the app
 
-Double-click `run_photo_selection.bat`, pick a tool at the top (Match Photos or
+Double-click `dist/PhotoSelection.exe`, or `run_photo_selection.bat` to run
+from source with Python. Pick a tool at the top (Match Photos or
 File List), choose folders with the Browse buttons, then click **Copy photos**
 or **Create list**. Progress and the result appear at the bottom of the window,
 and the window stays responsive while large folders are copied. When a run
 finishes, **Open folder** / **Open file** shows the result.
 
-Requires Python 3.9+ with Tkinter (included in the standard Windows installer).
+Running from source requires Python 3.9+ with Tkinter (included in the
+standard Windows installer).
 
 ### Language / 언어
 
@@ -76,7 +87,9 @@ pip install pyinstaller
 pyinstaller PhotoSelection.spec
 ```
 
-The app is written to `dist/PhotoSelection.exe`.
+The app is written to `dist/PhotoSelection.exe`. That file is committed so it
+can be downloaded straight from GitHub, so rebuild and commit it whenever the
+code changes.
 
 ## Project layout
 
@@ -84,6 +97,7 @@ The app is written to `dist/PhotoSelection.exe`.
 main.py                    entry point: opens the app, or runs a terminal command
 run_photo_selection.bat    double-click launcher
 PhotoSelection.spec        PyInstaller build config
+dist/PhotoSelection.exe    ready-to-run app (no Python needed)
 photo_selection/
     intersection.py        Match Photos logic
     file_list.py           File List logic
