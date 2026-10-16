@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# PyInstaller output
+build/
+dist/
+*.zip
