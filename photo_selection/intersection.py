@@ -23,8 +23,13 @@ FILE_TYPES: dict[str, frozenset[str]] = {
 }
 
 
+def normalize_name(name: str) -> str:
+    """Compare names ignoring case and Unicode normalization (e.g. Korean NFD/NFC)."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
 def normalized_stem(path: Path) -> str:
-    return unicodedata.normalize("NFC", path.stem).casefold()
+    return normalize_name(path.stem)
 
 
 def collect_photo_paths_by_stem(
@@ -64,12 +69,11 @@ def path_is_inside(path: Path, parent: Path) -> bool:
     return True
 
 
-def validate_output_folder(folder_a: Path, folder_b: Path, output_folder: Path) -> None:
+def validate_output_folder(output_folder: Path, *sources: tuple[Path, str]) -> None:
+    """Refuse an output folder that is, or contains, one of the (folder, label) sources."""
     output_folder = output_folder.resolve()
-    for source_folder, label in (
-        (folder_a.resolve(), t("folder_a")),
-        (folder_b.resolve(), t("folder_b")),
-    ):
+    for source_folder, label in sources:
+        source_folder = source_folder.resolve()
         if output_folder == source_folder:
             raise ValueError(t("err_same_as_source", label=label))
         if path_is_inside(source_folder, output_folder):
@@ -106,7 +110,9 @@ def copy_photo_intersection(
     if file_type not in FILE_TYPES:
         raise ValueError(t("err_bad_type", types=", ".join(FILE_TYPES)))
 
-    validate_output_folder(folder_a, folder_b, output_folder)
+    validate_output_folder(
+        output_folder, (folder_a, t("folder_a")), (folder_b, t("folder_b"))
+    )
     reset_output_folder(output_folder)
 
     source, other = (folder_a, folder_b) if source_folder == "A" else (folder_b, folder_a)

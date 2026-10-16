@@ -7,6 +7,7 @@ from .file_list import default_output_path, write_file_list
 from .i18n import LANGUAGES, load_language, set_language, t
 from .intersection import FILE_TYPES, copy_photo_intersection
 from .paths import clean_path, validate_folder
+from .targets import copy_target_photos, parse_targets, read_text_file
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,6 +46,34 @@ def build_parser() -> argparse.ArgumentParser:
         choices=tuple(FILE_TYPES),
         default="all",
         help="file types to copy from the source folder (default: all)",
+    )
+
+    target = commands.add_parser(
+        "target",
+        help="copy the photos a list of file names or numbers refers to",
+        description=(
+            "Empty the output folder, then copy the photos in the photo folder (and its "
+            "subfolders) that the list refers to. The list is free-form: file names, bare "
+            "numbers matching the last number in a filename, or ranges like 20~25, separated "
+            "by commas, spaces, tabs, or line breaks. Extensions and leading zeros are "
+            "ignored. Targets that are not found are printed. Missing arguments are asked "
+            "for in the terminal."
+        ),
+    )
+    target.add_argument(
+        "names",
+        nargs="?",
+        help='a TXT file with the list, or the list itself (e.g. "img_1.png, 2, 5~8")',
+    )
+    target.add_argument("photo_folder", nargs="?", help="folder to search for the photos")
+    target.add_argument("output_folder", nargs="?", help="folder to create/refresh")
+    target.add_argument(
+        "--type",
+        dest="file_type",
+        type=str.lower,
+        choices=tuple(FILE_TYPES),
+        default="all",
+        help="file types to copy (default: all)",
     )
 
     file_list = commands.add_parser(
@@ -96,6 +125,33 @@ def run_match(args: argparse.Namespace) -> None:
     print(t("match_done", count=copied, source=source, folder=output_folder))
 
 
+def load_names(value: str) -> str:
+    """The contents of the TXT file named by value, or value itself if it is not a file."""
+    path = clean_path(value)
+    try:
+        is_file = path.is_file()
+    except (OSError, ValueError):  # e.g. a long pasted list is not a valid path
+        is_file = False
+    return read_text_file(path) if is_file else value
+
+
+def run_target(args: argparse.Namespace) -> None:
+    names_text = load_names(args.names or input(f"{t('prompt_names')}: "))
+    photo_folder = ask_for_path(t("prompt_photo_folder"), args.photo_folder)
+    output_folder = ask_for_path(t("prompt_output_folder"), args.output_folder)
+
+    validate_folder(photo_folder, t("photo_folder"))
+
+    result = copy_target_photos(
+        parse_targets(names_text), photo_folder, output_folder, args.file_type
+    )
+    print(t("target_cli_done", found=result.found, count=result.copied, folder=output_folder))
+    if result.missing:
+        print(t("target_cli_missing", count=len(result.missing)))
+        for name in result.missing:
+            print(f"  {name}")
+
+
 def run_list(args: argparse.Namespace) -> None:
     folder = ask_for_path(t("prompt_list_folder"), args.folder)
     output_file = (
@@ -122,6 +178,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.command == "match":
             run_match(args)
+        elif args.command == "target":
+            run_target(args)
         else:
             run_list(args)
     except (OSError, ValueError) as error:
